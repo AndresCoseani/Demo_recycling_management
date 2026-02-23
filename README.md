@@ -1,9 +1,9 @@
-# Enterprise Resource Planning (ERP) — Recycling & Packaging Demo
+# Full-Stack ERP Demo — Recycling & Packaging Management System
 
 A specialized Full-Stack ERP solution architected for high-efficiency management in the industrial recycling and packaging sector. This platform provides a centralized hub for tracking raw material processing and finished goods logistics through a hybrid inventory model.
 
 > [!IMPORTANT]
-> **PUBLIC DEMO VERSION:** This repository acts as a technical showcase. The system includes a **"Demo Mode"** that isolates the frontend from backend dependencies, providing a stable, high-performance experience with simulated data while preserving the original service-layer architecture for code review.
+> **PUBLIC DEMO VERSION:** This repository acts as a technical showcase. The system includes a **"Demo Mode"** that isolates the frontend from backend dependencies, providing a stable, enterprise-grade security with simulated data while preserving the original service-layer architecture for code review.
 
 ---
 
@@ -78,7 +78,6 @@ The project is built on a **Security-First** philosophy:
 
 The project follows a clean, modular monorepo structure:
 
-```text
 project-root/
 ├─ api/             # High-Availability Express Backend
 │  ├─ routes/       # RESTful endpoint definitions
@@ -91,7 +90,6 @@ project-root/
 │  ├─ pages/        # Business workflows and dashboard views
 │  ├─ lib/          # API Clients & Global Singleton utilities
 │  └─ services/     # Frontend Service Abstraction Layer
-```
 
 ---
 
@@ -108,6 +106,24 @@ Clone the repository and install dependencies. To execute the stabilized demo, e
 - **Password:** `admin1234`
 
 ---
+
+## ScreenShots
+#Login
+<img width="1919" height="917" alt="image" src="https://github.com/user-attachments/assets/3f923a87-4427-4942-9b0c-74651df0ed00" />
+
+#HomePage
+<img width="1904" height="916" alt="image" src="https://github.com/user-attachments/assets/05cb15cd-f1da-4a66-8f6e-a4139c5eea8f" />
+
+#Buys
+<img width="1919" height="920" alt="image" src="https://github.com/user-attachments/assets/42568bfd-4154-4e08-a611-e065f58e3f6f" />
+
+#Reports & Analytics
+<img width="1900" height="918" alt="image" src="https://github.com/user-attachments/assets/822a8348-39df-448a-b365-02bcc2f97c25" />
+
+#Audit
+<img width="1919" height="915" alt="image" src="https://github.com/user-attachments/assets/6ca778da-bac2-42a8-99b6-ac827ef67c68" />
+
+
 
 ## 📫 Professional Contact
 
