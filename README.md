@@ -107,20 +107,20 @@ Clone the repository and install dependencies. To execute the stabilized demo, e
 
 ---
 
-## ScreenShots
-#Login
+### ScreenShots
+### Login
 <img width="1919" height="917" alt="image" src="https://github.com/user-attachments/assets/3f923a87-4427-4942-9b0c-74651df0ed00" />
 
-#HomePage
+### Dashboard
 <img width="1904" height="916" alt="image" src="https://github.com/user-attachments/assets/05cb15cd-f1da-4a66-8f6e-a4139c5eea8f" />
 
-#Buys
+### Purchase
 <img width="1919" height="920" alt="image" src="https://github.com/user-attachments/assets/42568bfd-4154-4e08-a611-e065f58e3f6f" />
 
-#Reports & Analytics
+### Reports & Analytics
 <img width="1900" height="918" alt="image" src="https://github.com/user-attachments/assets/822a8348-39df-448a-b365-02bcc2f97c25" />
 
-#Audit
+### Audit Module
 <img width="1919" height="915" alt="image" src="https://github.com/user-attachments/assets/6ca778da-bac2-42a8-99b6-ac827ef67c68" />
 
 
