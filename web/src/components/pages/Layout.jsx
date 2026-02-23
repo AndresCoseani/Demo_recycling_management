@@ -1,0 +1,77 @@
+import { useState, useEffect } from "react";
+import { Outlet, useLocation, Link } from "react-router-dom";
+import Sidebar from "../pages/Sidebar.jsx";
+import HamburgerButton from "../buttons/HamburgerButton.jsx";
+
+export default function Layout() {
+  const { pathname } = useLocation();
+
+  const [sidebarOpen, setSidebarOpen] = useState(() => pathname !== "/");
+  const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
+
+  useEffect(() => {
+    if (pathname === "/") {
+      setSidebarOpen(false);
+    } else {
+      setSidebarOpen(true);
+    }
+
+    setSidebarMobileOpen(false);
+  }, [pathname]);
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex font-sans">
+      <Sidebar
+        open={sidebarOpen}
+        mobileOpen={sidebarMobileOpen}
+        onCloseMobile={() => setSidebarMobileOpen(false)}
+        onToggle={() => setSidebarOpen((o) => !o)}
+      />
+
+      <main className="flex-1 min-h-screen overflow-y-auto overflow-x-hidden">
+        <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur shadow-sm md:hidden">
+          <div className="px-4 py-2 flex items-center gap-3">
+            <HamburgerButton
+              onClick={() => setSidebarMobileOpen(true)}
+              label="Abrir menú"
+            />
+            <Link
+              to="/"
+              className="text-2xl font-extrabold text-emerald-900 select-none hover:text-emerald-700"
+            >
+              DEMO APP
+            </Link>
+          </div>
+        </div>
+
+        {!sidebarOpen && (
+          <div className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur shadow-sm hidden md:block">
+            <div className="px-4 md:px-8 py-2 flex items-center gap-3">
+              <HamburgerButton onClick={() => setSidebarOpen(true)} />
+              <Link
+                to="/"
+                className="text-2xl font-extrabold text-emerald-900 select-none hover:text-emerald-700"
+              >
+                {" "}
+                DEMO APP
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Banner de Modo Demo */}
+        {import.meta.env.VITE_DEMO_MODE === "true" && (
+          <div className="bg-emerald-600 text-white text-[10px] md:text-xs font-medium py-1 px-4 text-center sticky top-0 md:top-auto z-40 shadow-sm">
+            <strong>Modo Demo Activado</strong> — Los datos son simulados para
+            demostración técnica.
+          </div>
+        )}
+
+        {/* Contenido */}
+        <div className="px-4 md:px-8 py-4 md:py-8">
+          <Outlet />
+        </div>
+      </main>
+    </div>
+  );
+}

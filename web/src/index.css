@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  h1 {
+    @apply text-3xl md:text-4xl font-bold tracking-tight text-emerald-900;
+  }
+  h2 {
+    @apply text-2xl md:text-3xl font-bold tracking-tight text-emerald-900;
+  }
+  h3 {
+    @apply text-xl font-semibold text-emerald-900;
+  }
+}
+
+body {
+  min-height: 100vh;
+  overflow-y: auto;
+  background-color: #f6f9f6;
+}
+
+@layer utilities {
+
+ .dn-home-page {
+ 
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+
+
+
+  @media (max-height: 900px) {
+    .dn-home-page {
+      
+      justify-content: flex-start;
+      padding-top: 0.75rem;
+      padding-bottom: 0.75rem;
+    }
+  }
+
+  @media (max-height: 750px) {
+    .dn-home-page {
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+  }
+
+
+
+ 
+  .dn-table-wrapper {
+    max-height: 430px;
+  }
+
+ 
+  .dn-table-wrapper-sm {
+    max-height: 320px;
+  }
+
+
+  .dn-table-wrapper-tall {
+    max-height: 480px;
+  }
+
+  
+
+  @media (max-height: 900px) {
+    .dn-page {
+      padding-block: 1.25rem;
+    }
+
+    .dn-home-header {
+      margin-block: 1.5rem;
+      gap: 0.75rem;
+    }
+
+    .dn-home-logo {
+      width: 7.5rem;
+      height: 7.5rem;
+    }
+
+    .dn-home-title {
+      font-size: 1.6rem;
+    }
+
+    .dn-table-wrapper {
+      max-height: 340px;
+    }
+
+    .dn-table-wrapper-sm {
+      max-height: 260px;
+    }
+
+    .dn-table-wrapper-tall {
+      max-height: 400px;
+    }
+  }
+
+  @media (max-height: 750px) {
+    .dn-page {
+      padding-block: 0.75rem;
+    }
+
+    .dn-home-header {
+      margin-block: 1rem;
+      gap: 0.5rem;
+    }
+
+    .dn-home-logo {
+      width: 6.5rem;
+      height: 6.5rem;
+    }
+
+    .dn-home-title {
+      font-size: 1.4rem;
+    }
+
+    .dn-table-wrapper {
+      max-height: 280px;
+    }
+
+    .dn-table-wrapper-sm {
+      max-height: 220px;
+    }
+
+    .dn-table-wrapper-tall {
+      max-height: 340px;
+    }
+  }
+}

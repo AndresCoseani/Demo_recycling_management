@@ -1,0 +1,871 @@
+import React, { useState, useEffect } from "react";
+import { Plus } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import PageContainer from "../components/pages/PageContainer";
+import FormBuilder from "../components/forms/FormBuilder";
+import DataTable from "../components/tables/DataTable";
+import Modified from "../components/modals/Modified.jsx";
+import Modal from "../components/modals/Modals.jsx";
+import api from "../lib/apiClient";
+import ProductFormTabs from "../components/forms/ProductFormTabs";
+import ProductoSelect from "../components/ui/ProductoSelect";
+
+const NEW_SALE_KEY = "dn_new_sale_items";
+const SESSION_KEY = "dn_pending_sale_items";
+
+const calcSubtotal = (cantidad, precio, descuento) => {
+  if (!cantidad || !precio) return 0;
+  const c = Number(cantidad) || 0;
+  const p = Number(precio) || 0;
+  const d = Number(descuento) || 0;
+  return +(c * p * (1 - d / 100)).toFixed(2);
+};
+
+export default function RegistrarVentas() {
+  const { id } = useParams();
+  const isEditMode = Boolean(id);
+
+  const [ventas, setVentas] = useState(() => {
+    if (isEditMode) return [];
+    const saved = sessionStorage.getItem(NEW_SALE_KEY);
+    try {
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    if (isEditMode) {
+      sessionStorage.removeItem(NEW_SALE_KEY);
+      setVentas([]);
+    }
+  }, [isEditMode]);
+
+  useEffect(() => {
+    if (!isEditMode) {
+      sessionStorage.setItem(NEW_SALE_KEY, JSON.stringify(ventas));
+    }
+  }, [ventas, isEditMode]);
+
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    producto: "",
+    tipo: "",
+    cantidad: "",
+    precio: "",
+    descuento: "",
+    subtotal: "",
+  });
+
+  const [errors, setErrors] = useState({});
+  const [selectedVenta, setSelectedVenta] = useState(null);
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [isCancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [isNewOpen, setNewOpen] = useState(false);
+  const [isItemDeleteConfirmOpen, setItemDeleteConfirmOpen] = useState(false);
+  const [itemToDeleteIndex, setItemToDeleteIndex] = useState(null);
+
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    title: "",
+    text: "",
+    type: "",
+  });
+
+  useEffect(() => {
+    if (!isEditMode) return;
+
+    const fetchVenta = async () => {
+      /* ORIGINAL API CALL (Commented for Demo)
+      try {
+        const res = await api(`/api/ventas/${id}`);
+
+        const productosBackend = res.productos || [];
+        const productos = productosBackend.map((r) => ({
+          id_producto: r.id_producto,
+          producto: r.producto,
+          tipo: r.tipo_producto === "Caja" ? "Caja" : "Material",
+          cantidad: r.cantidad,
+          precio: r.precio,
+          descuento: r.descuento || 0,
+          subtotal: r.subtotal,
+          medida: r.medida || "u",
+        }));
+
+        setVentas(productos);
+        setFormData((prev) => ({
+          ...prev,
+          observaciones: res.venta?.observaciones || "",
+        }));
+      } catch (err) {
+        console.error("Error cargando venta:", err);
+      }
+      */
+
+      // --- MOCK DATA FOR EDIT MODE ---
+      if (id === "42") {
+        setVentas([
+          {
+            id_producto: 5,
+            producto: "Caja Pritty 10x20x15",
+            tipo: "Caja",
+            cantidad: 2000,
+            precio: 122.5,
+            descuento: 0,
+            subtotal: 245000,
+            medida: "u",
+          },
+        ]);
+        setFormData((prev) => ({
+          ...prev,
+          observaciones: "Pedido urgente Pritty S.A.",
+        }));
+      }
+    };
+
+    fetchVenta();
+  }, [isEditMode, id]);
+
+  useEffect(() => {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(ventas));
+  }, [ventas]);
+
+  const [productosDisponibles, setProductosDisponibles] = useState([]);
+  useEffect(() => {
+    const fetchProductos = async () => {
+      /* ORIGINAL API CALL (Commented for Demo)
+      try {
+        const data = await api("/v1/productos");
+        const rawProductos = data.productos || [];
+
+        const activos = rawProductos.filter((p) => p?.estado === true);
+
+        const items = activos.map((p) => ({
+          id_producto: p.id_producto,
+          nombre: p.nombre,
+          precio: Number(p.precio_unitario) || 0,
+          tipoVenta: p.id_tipo_producto === 1 ? "Caja" : "Material",
+        }));
+
+        setProductosDisponibles(items);
+      } catch (err) {
+        console.error("Error cargando productos:", err.message);
+      }
+      */
+
+      // --- MOCK CATALOG FOR DEMO ---
+      const mockItems = [
+        {
+          id_producto: 1,
+          nombre: "Cartón Corrugado",
+          precio: 170,
+          tipoVenta: "Material",
+        },
+        {
+          id_producto: 2,
+          nombre: "Plástico PET",
+          precio: 210,
+          tipoVenta: "Material",
+        },
+        {
+          id_producto: 5,
+          nombre: "Caja Pritty 10x20x15",
+          precio: 122.5,
+          tipoVenta: "Caja",
+        },
+        {
+          id_producto: 4,
+          nombre: "Caja Estándar A",
+          precio: 164,
+          tipoVenta: "Caja",
+        },
+      ];
+      setProductosDisponibles(mockItems);
+    };
+    fetchProductos();
+  }, []);
+
+  const handleActualizarVenta = async () => {
+    /* ORIGINAL API CALL (Commented for Demo)
+    try {
+      await api(`/api/ventas/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productos: ventas,
+          observaciones: formData.observaciones || null,
+        }),
+      });
+      setMessageModal({ isOpen: true, title: "Venta actualizada", text: "Cambios guardados.", type: "success" });
+    } catch (err) {
+      setMessageModal({ isOpen: true, title: "Error", text: "No se pudo actualizar.", type: "error" });
+    }
+    */
+
+    // --- MOCK SUCCESS FOR DEMO ---
+    setMessageModal({
+      isOpen: true,
+      title: "Venta actualizada",
+      text: "Cambios guardados correctamente (Demo Mode).",
+      type: "success",
+    });
+  };
+
+  const handleGuardarVenta = async () => {
+    if (ventas.length === 0) {
+      return setMessageModal({
+        isOpen: true,
+        title: "Aviso",
+        text: "No hay productos cargados en la venta.",
+        type: "error",
+      });
+    }
+
+    /* ORIGINAL API CALL (Commented for Demo)
+    try {
+      const response = await api("/api/ventas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ventas, observaciones: formData.observaciones }),
+      });
+      if (response.success) {
+        setMessageModal({ isOpen: true, title: "Venta Registrada", text: "Registrada con éxito.", type: "success" });
+      }
+    } catch (err) {
+      setMessageModal({ isOpen: true, title: "Error", text: "Error de red.", type: "error" });
+    }
+    */
+
+    // --- MOCK SUCCESS FOR DEMO ---
+    setMessageModal({
+      isOpen: true,
+      title: " ¡Venta Registrada!",
+      text: `La Venta N° ${Math.floor(Math.random() * 1000)} ha sido registrada correctamente y el stock actualizado (Demo Mode).`,
+      type: "success",
+    });
+    sessionStorage.removeItem(SESSION_KEY);
+    setVentas([]);
+    setFormData((prev) => ({ ...prev, observaciones: "" }));
+  };
+
+  const totalVenta = ventas.reduce(
+    (acc, v) => acc + Number(v.subtotal || 0),
+    0,
+  );
+  const subtotalCajas = ventas
+    .filter((v) => v.tipo === "Caja")
+    .reduce((a, v) => a + Number(v.subtotal), 0);
+  const subtotalProductos = ventas
+    .filter((v) => v.tipo === "Material")
+    .reduce((a, v) => a + Number(v.subtotal), 0);
+  const cantidadCajas = ventas
+    .filter((v) => v.tipo === "Caja")
+    .reduce((a, v) => a + Number(v.cantidad), 0);
+  const cantidadProductos = ventas
+    .filter((v) => v.tipo === "Material")
+    .reduce((a, v) => a + Number(v.cantidad), 0);
+
+  const columns = [
+    { id: "tipo", header: "Tipo", accessor: "tipo", align: "center" },
+    {
+      id: "producto",
+      header: "Producto",
+      accessor: "producto",
+      align: "center",
+    },
+    {
+      id: "cantidad",
+      header: "Cantidad",
+      accessor: "cantidad",
+      align: "center",
+    },
+    {
+      id: "subtotal",
+      header: "Subtotal",
+      align: "center",
+      render: (row) => `$${Number(row.subtotal).toLocaleString("es-AR")}`,
+    },
+    {
+      id: "observaciones",
+      header: "Observ.Gral",
+      accessor: "observaciones",
+      align: "center",
+      width: "200px",
+      render: (row) => row.observaciones,
+    },
+    {
+      id: "acciones",
+      header: "Acciones",
+      align: "center",
+      render: (row) => {
+        const i = ventas.findIndex((v) => v.id_producto === row.id_producto);
+        return (
+          <div className="min-w-[140px] flex flex-wrap justify-center items-center gap-2">
+            <button
+              onClick={() => handleEditar(row, i)}
+              className="bg-[#154734] text-white px-3 py-1 text-xs rounded-md hover:bg-[#1E5A3E]"
+            >
+              MODIFICAR
+            </button>
+            <button
+              onClick={() => handleOpenItemDelete(i)}
+              className="bg-[#A30000] text-white px-3 py-1 text-xs rounded-md hover:bg-[#7A0000]"
+            >
+              ELIMINAR
+            </button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const handleNewProductSubmit = async (values) => {
+    try {
+      const row = await api("/api/stock/productos", {
+        method: "POST",
+        body: values,
+      });
+
+      const nuevoProducto = {
+        id_producto: row.id_producto,
+        nombre: row.referencia,
+        precio: Number(row.precio) || 0,
+        tipoVenta: row.tipo === "Caja" ? "Caja" : "Material",
+      };
+
+      setProductosDisponibles((prev) => [...prev, nuevoProducto]);
+      setNewOpen(false);
+
+      setMessageModal({
+        isOpen: true,
+        title: " Producto creado",
+        text: `El producto "${nuevoProducto.nombre}" fue creado correctamente.`,
+        type: "success",
+      });
+    } catch (e) {
+      console.error("Error al crear producto:", e);
+      setMessageModal({
+        isOpen: true,
+        title: " Error al crear producto",
+        text: e.message || "Error al crear producto",
+        type: "error",
+      });
+    }
+  };
+
+  const handleChange = (name, value) => {
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+
+      if (name === "producto") {
+        const prod = productosDisponibles.find((p) => p.nombre === value);
+        if (prod) {
+          updated.precio = prod.precio;
+          updated.tipo = prod.tipoVenta;
+        } else {
+          updated.precio = "";
+          updated.tipo = "";
+        }
+      }
+
+      updated.subtotal = calcSubtotal(
+        updated.cantidad,
+        updated.precio,
+        updated.descuento,
+      );
+      return updated;
+    });
+  };
+
+  const handleAgregarProducto = () => {
+    if (!formData.producto || !formData.cantidad) {
+      return setMessageModal({
+        isOpen: true,
+        title: "Atención",
+        text: "Debe seleccionar un producto e ingresar la cantidad.",
+        type: "error",
+      });
+    }
+
+    const prod = productosDisponibles.find(
+      (p) => p.nombre === formData.producto,
+    );
+    const newItem = {
+      id_producto: prod?.id_producto || Date.now(),
+      producto: formData.producto,
+      tipo: formData.tipo,
+      cantidad: Number(formData.cantidad),
+      precio: Number(formData.precio),
+      descuento: Number(formData.descuento || 0),
+      subtotal: Number(formData.subtotal),
+      observaciones: formData.observaciones || "—",
+    };
+
+    setVentas((prev) => [...prev, newItem]);
+    setFormData({
+      producto: "",
+      tipo: "",
+      cantidad: "",
+      precio: "",
+      descuento: "",
+      subtotal: "",
+      observaciones: "",
+    });
+    setErrors({});
+  };
+
+  const handleEditar = (row, index) => {
+    setSelectedVenta({
+      index,
+      productos: [{ ...row }],
+    });
+    setEditOpen(true);
+  };
+
+  const handleGuardarCambios = (payload) => {
+    const updatedItem = payload.productos[0];
+    const idx = selectedVenta.index;
+
+    setVentas((prev) => {
+      const copy = [...prev];
+      copy[idx] = {
+        ...updatedItem,
+        subtotal: calcSubtotal(
+          updatedItem.cantidad,
+          updatedItem.precio,
+          updatedItem.descuento,
+        ),
+      };
+      return copy;
+    });
+
+    setEditOpen(false);
+    setSelectedVenta(null);
+  };
+
+  const handleOpenItemDelete = (index) => {
+    setItemToDeleteIndex(index);
+    setItemDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmItemDelete = () => {
+    setVentas((prev) => prev.filter((_, i) => i !== itemToDeleteIndex));
+    setItemDeleteConfirmOpen(false);
+    setItemToDeleteIndex(null);
+  };
+
+  const handleCancelClick = () => {
+    if (ventas.length > 0) setCancelConfirmOpen(true);
+    else navigate("/ventas");
+  };
+
+  const handleCancelConfirm = () => {
+    setVentas([]);
+    sessionStorage.removeItem(SESSION_KEY);
+    navigate("/ventas");
+  };
+
+  const ventasConObservacion = React.useMemo(
+    () =>
+      ventas.map((v) => ({
+        ...v,
+        observaciones: v.observaciones || "—",
+      })),
+    [ventas],
+  );
+
+  // =========================
+  // RENDER PRINCIPAL
+  // =========================
+  return (
+    <PageContainer
+      title={isEditMode ? "Modificar Venta" : "Registrar Venta"}
+      extraHeight
+    >
+      <div className="flex flex-col h-full">
+        <div className="flex-1 flex flex-col">
+          <div className="bg-[#f7fbf8] border border-[#e2ede8] rounded-2xl p-4 mb-4 flex-shrink-0">
+            <h2 className="text-[#154734] text-base font-semibold mb-3">
+              Datos de la venta
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-[0.5fr_0.2fr] gap-4 mb-4 max-w-[700px]">
+              <div>
+                <label className="block text-sm text-slate-700 mb-1">
+                  Producto
+                </label>
+                <ProductoSelect
+                  productos={productosDisponibles}
+                  value={
+                    productosDisponibles.find(
+                      (p) => p.nombre === formData.producto,
+                    ) || null
+                  }
+                  onChange={(p) => handleChange("producto", p?.nombre || "")}
+                />
+              </div>
+
+              <div>
+                <FormBuilder
+                  fields={[
+                    {
+                      label: "Tipo de venta",
+                      name: "tipo",
+                      type: "text",
+                      readOnly: true,
+                      placeholder: "—",
+                      inputClass: "bg-[#f2f2f2] text-center",
+                    },
+                  ]}
+                  values={formData}
+                  onChange={handleChange}
+                  errors={errors}
+                  columns={1}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3 md:gap-5 items-end">
+              <FormBuilder
+                fields={[
+                  {
+                    label: "Cant. (u/kg)",
+                    name: "cantidad",
+                    type: "number",
+                    placeholder: "0",
+                  },
+                ]}
+                values={formData}
+                onChange={handleChange}
+                errors={errors}
+                columns={1}
+              />
+
+              <FormBuilder
+                fields={[
+                  {
+                    label: "Subtotal",
+                    name: "subtotal",
+                    type: "number",
+                    placeholder: "$",
+                    readOnly: true,
+                    inputClass: "bg-[#f2f2f2]",
+                  },
+                ]}
+                values={formData}
+                onChange={handleChange}
+                errors={errors}
+                columns={1}
+              />
+
+              <FormBuilder
+                fields={[
+                  {
+                    label: "Descuento",
+                    name: "descuento",
+                    type: "number",
+                    placeholder: "%",
+                  },
+                ]}
+                values={formData}
+                onChange={handleChange}
+                errors={errors}
+                columns={1}
+              />
+              <div className="md:col-span-1">
+                <FormBuilder
+                  fields={[
+                    {
+                      label: "Observaciones",
+                      name: "observaciones",
+                      type: "text",
+                      placeholder: "Opcional",
+                    },
+                  ]}
+                  values={formData}
+                  onChange={handleChange}
+                  errors={errors}
+                  columns={1}
+                />
+              </div>
+
+              <div className="flex flex-col md:flex-row gap-2 md:col-span-2">
+                <button
+                  onClick={handleAgregarProducto}
+                  className="bg-[#154734] text-white px-4 py-2 rounded-md hover:bg-[#103a2b] transition w-full"
+                >
+                  + Añadir
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNewOpen(true)}
+                  className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef] transition w-full"
+                >
+                  + Nuevo
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <h3 className="text-[#154734] text-sm font-semibold mb-2">
+            Productos registrados
+          </h3>
+
+          <div className="flex-1 min-h-[150px] rounded-t-xl border-t border-[#e3e9e5]">
+            {/* Desktop Table */}
+            <div className="hidden md:block">
+              <DataTable
+                columns={columns}
+                data={ventasConObservacion}
+                stickyHeader={true}
+                cellClass="px-4 py-2"
+                wrapperClass="dn-table-wrapper overflow-y-auto"
+                enablePagination={true}
+              />
+            </div>
+
+            {/* Mobile Card List */}
+            <div className="md:hidden space-y-3 mt-2">
+              {ventasConObservacion.length === 0 && (
+                <p className="text-center text-gray-500 py-4 text-sm">
+                  No hay productos agregados.
+                </p>
+              )}
+              {ventasConObservacion.map((row) => {
+                const i = ventas.findIndex(
+                  (v) => v.id_producto === row.id_producto,
+                );
+                return (
+                  <div
+                    key={i}
+                    className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-bold text-[#154734]">
+                          {row.producto}
+                        </p>
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                          {row.tipo}
+                        </span>
+                      </div>
+                      <p className="font-bold text-[#154734] text-lg">
+                        ${Number(row.subtotal).toLocaleString("es-AR")}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-sm text-gray-600 mb-2">
+                      <div>
+                        Cant:{" "}
+                        <span className="font-semibold">{row.cantidad}</span>
+                      </div>
+                      {/* <div>Desc: {row.descuento}%</div> */}
+                    </div>
+                    {row.observaciones && (
+                      <p className="text-xs text-gray-500 italic mb-2 border-t pt-1">
+                        {row.observaciones}
+                      </p>
+                    )}
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => handleEditar(row, i)}
+                        className="flex-1 bg-[#154734] text-white text-xs py-2 rounded hover:bg-[#1E5A3E]"
+                      >
+                        MODIFICAR
+                      </button>
+                      <button
+                        onClick={() => handleOpenItemDelete(i)}
+                        className="flex-1 bg-[#A30000] text-white text-xs py-2 rounded hover:bg-[#7A0000]"
+                      >
+                        ELIMINAR
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {ventas.length > 0 && (
+            <div className="flex flex-col md:flex-row justify-between items-center text-[#154734] text-sm mt-3 mb-1 flex-shrink-0 gap-2">
+              <div className="text-center md:text-left">
+                Subtotales: Cajas: {cantidadCajas} u — $
+                {subtotalCajas.toLocaleString("es-AR")}
+                <br className="md:hidden" />
+                &nbsp;&nbsp;Materiales: {cantidadProductos} kg — $
+                {subtotalProductos.toLocaleString("es-AR")}
+              </div>
+              <p className="text-[#154734] font-semibold border border-[#e2ede8] bg-[#e8f4ef] px-3 py-1 rounded-md w-full md:w-auto text-center">
+                Total venta:&nbsp;
+                <span className="font-bold">
+                  ${totalVenta.toLocaleString("es-AR")}
+                </span>
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-3 mt-4 pb-2">
+          <button
+            onClick={handleCancelClick}
+            className="border border-[#154734] text-[#154734] px-6 py-2 rounded-md hover:bg-[#f0f7f3] transition w-full sm:w-auto"
+          >
+            CANCELAR
+          </button>
+
+          <button
+            onClick={isEditMode ? handleActualizarVenta : handleGuardarVenta}
+            className="bg-[#154734] text-white px-6 py-2 rounded-lg hover:bg-[#103a2b] transition w-full sm:w-auto"
+          >
+            {isEditMode ? "ACTUALIZAR VENTA" : "GUARDAR"}
+          </button>
+        </div>
+
+        <Modal
+          isOpen={isItemDeleteConfirmOpen}
+          onClose={() => setItemDeleteConfirmOpen(false)}
+          title="Confirmar Eliminación"
+          size="max-w-xs"
+          footer={
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setItemDeleteConfirmOpen(false)}
+                className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmItemDelete}
+                className="bg-[#A30000] text-white px-6 py-2 rounded-md hover:bg-[#7A0000]"
+              >
+                Eliminar
+              </button>
+            </div>
+          }
+        >
+          <p className="text-sm text-slate-700">
+            ¿Estás seguro de eliminar este producto del borrador de la venta?
+          </p>
+        </Modal>
+
+        <Modal
+          isOpen={isCancelConfirmOpen}
+          onClose={() => setCancelConfirmOpen(false)}
+          title="Confirmar Cancelación"
+          size="max-w-md"
+          footer={
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setCancelConfirmOpen(false)}
+                className="px-4 py-2 rounded-md font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+              >
+                Volver
+              </button>
+              <button
+                onClick={handleCancelConfirm}
+                className="px-4 py-2 rounded-md font-semibold text-white bg-red-600 hover:bg-red-700 transition"
+              >
+                Sí, Cancelar
+              </button>
+            </div>
+          }
+        >
+          <p className="text-sm text-slate-700">
+            ¿Estás seguro de que quieres cancelar el registro de esta venta? Se
+            perderán todos los productos cargados.
+          </p>
+        </Modal>
+
+        <Modal
+          isOpen={isNewOpen}
+          title="Registrar nuevo producto"
+          onClose={() => setNewOpen(false)}
+          size="max-w-2xl"
+        >
+          <ProductFormTabs
+            mode="create"
+            initialValues={{
+              tipo: "Caja",
+              referencia: "",
+              categoria: "",
+              medidas: { l: "", a: "", h: "" },
+              unidad: "u",
+              cantidad: "",
+              precio: "",
+              notas: "",
+            }}
+            labels={{ caja: "Caja", material: "Material" }}
+            onCancel={() => setNewOpen(false)}
+            onSubmit={handleNewProductSubmit}
+          />
+        </Modal>
+
+        <Modal
+          isOpen={messageModal.isOpen}
+          onClose={() => {
+            setMessageModal({ isOpen: false, title: "", text: "", type: "" });
+            if (messageModal.type === "success") {
+              navigate("/ventas");
+            }
+          }}
+          title={messageModal.title}
+          size="max-w-md"
+          footer={
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setMessageModal({
+                    isOpen: false,
+                    title: "",
+                    text: "",
+                    type: "",
+                  });
+                  if (messageModal.type === "success") navigate("/ventas");
+                }}
+                className={`px-4 py-2 rounded-md font-semibold text-white transition ${
+                  messageModal.type === "success"
+                    ? "bg-emerald-700 hover:bg-emerald-800"
+                    : "bg-red-700 hover:bg-red-800"
+                }`}
+              >
+                Aceptar
+              </button>
+            </div>
+          }
+        >
+          <p className="text-sm text-slate-700">{messageModal.text}</p>
+        </Modal>
+
+        {selectedVenta && (
+          <Modified
+            isOpen={isEditOpen}
+            onClose={() => setEditOpen(false)}
+            title={`Modificando ${
+              selectedVenta.productos?.[0]?.producto || ""
+            }`}
+            data={selectedVenta}
+            itemsKey="productos"
+            columns={[
+              { key: "tipo", label: "Tipo", readOnly: true },
+              { key: "producto", label: "Producto", readOnly: true },
+              { key: "cantidad", label: "Cantidad", type: "number" },
+              { key: "precio", label: "Precio Unitario", readOnly: true },
+              { key: "descuento", label: "Descuento (%)", type: "number" },
+              { key: "subtotal", label: "Subtotal", readOnly: true },
+            ]}
+            computeTotal={(rows) =>
+              rows.reduce(
+                (sum, r) =>
+                  sum + calcSubtotal(r.cantidad, r.precio, r.descuento),
+                0,
+              )
+            }
+            onSave={handleGuardarCambios}
+          />
+        )}
+      </div>
+    </PageContainer>
+  );
+}

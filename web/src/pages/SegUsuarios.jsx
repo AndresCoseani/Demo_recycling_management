@@ -1,0 +1,398 @@
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import PageContainer from "../components/pages/PageContainer";
+import DataTable from "../components/tables/DataTable";
+import Modal from "../components/modals/Modals";
+import UsuarioForm from "../components/forms/UsuarioForm.jsx";
+import MessageModal from "../components/modals/MessageModal";
+
+import {
+  listarUsuarios,
+  listarRoles,
+  crearUsuario,
+  actualizarUsuario,
+  eliminarUsuario,
+} from "../services/userService";
+
+export default function SegUsuarios() {
+  const [q, setQ] = useState("");
+  const [items, setItems] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [edit, setEdit] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    title: "",
+    text: "",
+    type: "",
+  });
+
+  const cargar = useCallback(async () => {
+    /* ORIGINAL SERVICE CALL (Commented for Demo)
+    try {
+      setLoading(true);
+      setErr("");
+      const [us, rs] = await Promise.all([listarUsuarios(), listarRoles()]);
+      setItems(us);
+      setRoles(rs);
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+    */
+
+    // --- MOCK DATA FOR DEMO ---
+    setLoading(true);
+    setErr("");
+
+    const mockUsers = [
+      {
+        id_usuario: 1,
+        dni: "12.345.678",
+        nombre: "Administrador Sistema",
+        mail: "admin@gmail.com",
+        rol_nombre: "Administrador",
+        estado: "ACTIVO",
+      },
+      {
+        id_usuario: 2,
+        dni: "23.456.789",
+        nombre: "Paula Gestión",
+        mail: "paula@gmail.com",
+        rol_nombre: "Ventas",
+        estado: "ACTIVO",
+      },
+      {
+        id_usuario: 3,
+        dni: "34.567.890",
+        nombre: "Operario Planta",
+        mail: "operario@gmail.com",
+        rol_nombre: "Producción",
+        estado: "ACTIVO",
+      },
+    ];
+
+    const mockRoles = [
+      { id_rol: 1, nombre: "Administrador" },
+      { id_rol: 2, nombre: "Ventas" },
+      { id_rol: 3, nombre: "Producción" },
+    ];
+
+    setItems(mockUsers);
+    setRoles(mockRoles);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  const filtered = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    if (!t) return items;
+    return items.filter(
+      (u) =>
+        (u.dni || "").toLowerCase().includes(t) ||
+        (u.nombre || "").toLowerCase().includes(t) ||
+        (u.mail || "").toLowerCase().includes(t) ||
+        (u.rol_nombre || "").toLowerCase().includes(t),
+    );
+  }, [items, q]);
+
+  const handleEliminar = useCallback(
+    async (row) => {
+      if (
+        !confirm(
+          `¿Estás seguro de eliminar al usuario ${row.nombre}? (Demo Mode)`,
+        )
+      ) {
+        return;
+      }
+
+      /* ORIGINAL SERVICE CALL (Commented for Demo)
+      try {
+        await eliminarUsuario(row.id_usuario);
+        await cargar();
+      } catch (error) {
+        setMessageModal({ isOpen: true, title: " Error", text: `No se pudo eliminar: ${error.message}`, type: "error" });
+      }
+      */
+
+      // --- MOCK DELETE FOR DEMO ---
+      setItems((prev) => prev.filter((u) => u.id_usuario !== row.id_usuario));
+      setMessageModal({
+        isOpen: true,
+        title: " Usuario eliminado",
+        text: `El usuario ${row.nombre} fue eliminado correctamente (Demo Mode).`,
+        type: "success",
+      });
+    },
+    [cargar],
+  );
+
+  const cols = useMemo(
+    () => [
+      {
+        id: "dni",
+        header: "DNI",
+        accessor: "dni",
+        width: 130,
+        nowrap: true,
+        sortable: true,
+      },
+      { id: "nombre", header: "Nombre", accessor: "nombre", sortable: true },
+      { id: "mail", header: "E-Mail", accessor: "mail", sortable: true },
+      {
+        id: "rol",
+        header: "Rol",
+        accessor: "rol_nombre",
+        width: 140,
+        align: "center",
+        sortable: true,
+      },
+      {
+        id: "estado",
+        header: "Estado",
+        width: 110,
+        align: "center",
+        sortable: true,
+        sortAccessor: (r) => (r.estado === "ACTIVO" ? 1 : 0),
+        render: (r) => (
+          <span
+            className={`px-2 py-0.5 rounded text-xs ${
+              r.estado === "ACTIVO"
+                ? "bg-emerald-100 text-emerald-900"
+                : "bg-slate-200 text-slate-700"
+            }`}
+          >
+            {r.estado === "ACTIVO" ? "Activo" : "Inactivo"}
+          </span>
+        ),
+      },
+      {
+        id: "acc",
+        header: "Acciones",
+        width: 190,
+        align: "center",
+        render: (row) => (
+          <div className="flex justify-center gap-2">
+            <button
+              className="px-2 py-1 text-xs rounded-md bg-[#154734] text-white hover:bg-[#1a5d42]"
+              onClick={() => {
+                setEdit(row);
+                setOpen(true);
+              }}
+            >
+              Modificar
+            </button>
+            <button
+              className="px-2 py-1 text-xs rounded-md bg-[#a30000] text-white hover:bg-[#8a0000]"
+              onClick={() => handleEliminar(row)}
+            >
+              Eliminar
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [handleEliminar],
+  );
+
+  const onNew = () => {
+    setEdit(null);
+    setOpen(true);
+  };
+
+  const onSave = async (u) => {
+    /* ORIGINAL SERVICE CALL (Commented for Demo)
+    try {
+      if (u.id_usuario) await actualizarUsuario(u.id_usuario, u);
+      else await crearUsuario(u);
+      setOpen(false);
+      await cargar();
+    } catch (error) {
+      setErr(`Error al guardar: ${error.message}`);
+    }
+    */
+
+    // --- MOCK SAVE FOR DEMO ---
+    const isEdit = Boolean(u.id_usuario);
+    const updatedUser = {
+      ...u,
+      id_usuario: u.id_usuario ?? Math.floor(Math.random() * 1000),
+      rol_nombre:
+        roles.find((r) => r.id_rol === Number(u.id_rol))?.nombre || "Usuario",
+    };
+
+    setItems((prev) => {
+      if (isEdit)
+        return prev.map((old) =>
+          old.id_usuario === updatedUser.id_usuario ? updatedUser : old,
+        );
+      return [...prev, updatedUser];
+    });
+
+    setOpen(false);
+    setMessageModal({
+      isOpen: true,
+      title: isEdit ? "Usuario actualizado" : "Usuario creado",
+      text: `El usuario ${updatedUser.nombre} fue guardado con éxito (Demo Mode).`,
+      type: "success",
+    });
+  };
+
+  return (
+    <PageContainer
+      title="Usuarios"
+      actions={
+        <div className="flex gap-3">
+          <button
+            onClick={onNew}
+            className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+          >
+            Nuevo usuario
+          </button>
+          <a
+            href="/seguridad/roles"
+            className="rounded-md border border-[#154734] text-[#154734] px-4 py-2 hover:bg-[#e8f4ef]"
+          >
+            Gestionar Roles
+          </a>
+        </div>
+      }
+    >
+      {err && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-5">
+          {err}
+          <button
+            onClick={() => setErr("")}
+            className="float-right font-bold text-red-900"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl border border-[#e3e9e5] p-5 md:p-6 mb-5">
+        <div className="max-w-md">
+          <label className="text-sm font-semibold text-[#154734] mb-1 block">
+            Buscar
+          </label>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Nombre o email"
+            className="w-full border border-[#d8e4df] rounded-md px-3 py-2"
+          />
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-slate-600">Cargando…</p>
+      ) : (
+        <div>
+          {/* Desktop Table */}
+          <div className="hidden md:block">
+            <DataTable
+              columns={cols}
+              data={filtered}
+              enableSort
+              tableClass="w-full text-sm border-collapse table-fixed"
+              theadClass="bg-[#e8f4ef] text-[#154734]"
+              rowClass="hover:bg-[#f6faf7] transition border-t border-[#edf2ef]"
+              headerClass="px-4 py-3 font-semibold border-r border-[#e3e9e5] last:border-none select-none"
+              cellClass="px-4 py-3 border-r border-[#edf2ef] last:border-none"
+            />
+          </div>
+
+          {/* Mobile Card List */}
+          <div className="md:hidden space-y-3">
+            {filtered.length === 0 && (
+              <p className="text-center text-gray-500 py-6">
+                No hay usuarios encontrados.
+              </p>
+            )}
+            {filtered.map((u) => (
+              <div
+                key={u.id_usuario}
+                className="bg-white border border-slate-200 rounded-lg p-4 shadow-sm"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-bold text-[#154734] text-lg">
+                      {u.nombre}
+                    </h3>
+                    <p className="text-sm text-gray-600">{u.mail}</p>
+                  </div>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-semibold ${
+                      u.estado === "ACTIVO"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {u.estado === "ACTIVO" ? "Activo" : "Inactivo"}
+                  </span>
+                </div>
+
+                <div className="text-sm text-gray-700 grid grid-cols-2 gap-2 mb-4 bg-slate-50 p-2 rounded">
+                  <div>
+                    <span className="block text-xs text-gray-400">DNI</span>
+                    <span className="font-medium">{u.dni}</span>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-gray-400">Rol</span>
+                    <span className="font-medium">{u.rol_nombre || "—"}</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setEdit(u);
+                      setOpen(true);
+                    }}
+                    className="flex-1 bg-[#154734] text-white py-2 rounded-lg text-sm hover:bg-[#103a2b]"
+                  >
+                    Modificar
+                  </button>
+                  <button
+                    onClick={() => handleEliminar(u)}
+                    className="flex-1 bg-[#a30000] text-white py-2 rounded-lg text-sm hover:bg-[#8a0000]"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {open && (
+        <Modal
+          isOpen={open}
+          onClose={() => setOpen(false)}
+          title={edit ? "Editar usuario" : "Nuevo usuario"}
+          size="max-w-2xl"
+        >
+          <UsuarioForm
+            initial={edit || {}}
+            roles={roles}
+            onSubmit={onSave}
+            onCancel={() => setOpen(false)}
+          />
+        </Modal>
+      )}
+      <MessageModal
+        isOpen={messageModal.isOpen}
+        title={messageModal.title}
+        text={messageModal.text}
+        type={messageModal.type}
+        onClose={() => setMessageModal((prev) => ({ ...prev, isOpen: false }))}
+      />
+    </PageContainer>
+  );
+}
